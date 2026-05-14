@@ -82,6 +82,20 @@ const {
                 },
             },
         },
+        field5: {
+            position: 1,
+            type: "union",
+            fieldDefinitions: [
+                {
+                    type: "string",
+                    length: "max",
+                },
+                {
+                    type: "number",
+                    subType: "integer",
+                },
+            ],
+        },
     }
 );
 

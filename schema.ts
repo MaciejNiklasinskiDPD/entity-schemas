@@ -53,6 +53,11 @@ export type ObjectEntityFieldDefinition = {
     schemaDefinition: EntitySchemaDefinition,
 };
 
+export type UnionEntityFieldDefinition = {
+    type: "union",
+    fieldDefinitions: readonly EntityFieldDefinition[],
+};
+
 export type NullEntityFieldDefinition = {
     type: "null",
     isNullable: true,
@@ -75,6 +80,7 @@ export type EntityFieldDefinition =
         | NumberEntityFieldDefinition
         | ArrayEntityFieldDefinition
         | ObjectEntityFieldDefinition
+        | UnionEntityFieldDefinition
         | NullEntityFieldDefinition
         | UndefinedEntityFieldDefinition
     ) & BaseEntityFieldDefinition;
@@ -94,6 +100,7 @@ export type EntityFieldVariant =
     | NumberEntityFieldDefinition
     | ArrayEntityFieldDefinition
     | ObjectEntityFieldDefinition
+    | UnionEntityFieldDefinition
     | NullEntityFieldDefinition
     | UndefinedEntityFieldDefinition;
 
@@ -105,6 +112,14 @@ export type RecurseIntoChildren<F> =
     ? { schemaDefinition: ExactEntitySchema<Sub> }
     : F extends { type: "array"; itemDefinition: infer Item extends EntityFieldDefinition }
     ? { itemDefinition: ExactField<Item, FlatEntityFieldVariant> }
+    : F extends { type: "union"; fieldDefinitions: infer Defs extends readonly EntityFieldDefinition[] }
+    ? {
+        fieldDefinitions: {
+            [K in keyof Defs]: Defs[K] extends EntityFieldDefinition
+            ? ExactField<Defs[K], FlatEntityFieldVariant>
+            : Defs[K];
+        };
+    }
     : {};
 
 export type ExactField<F, V> =
@@ -131,9 +146,19 @@ type EntityFieldBaseType<F extends EntityFieldDefinition> =
     F extends { type: "boolean" } ? z.ZodBoolean :
     F extends { type: "array"; itemDefinition: infer I extends EntityFieldDefinition } ? z.ZodArray<EntityFieldType<I>> :
     F extends { type: "object"; schemaDefinition: infer S extends EntitySchemaDefinition } ? z.ZodObject<SchemaShape<S>> :
+    F extends { type: "union"; fieldDefinitions: infer Defs extends readonly EntityFieldDefinition[] }
+    ? UnionElementTypes<Defs> extends infer M extends readonly z.ZodType[]
+    ? z.ZodUnion<M>
+    : never :
     F extends { type: "null" } ? z.ZodNull :
     F extends { type: "undefined" } ? z.ZodUndefined :
     never;
+
+type UnionElementTypes<Defs extends readonly EntityFieldDefinition[]> = {
+    [K in keyof Defs]: Defs[K] extends EntityFieldDefinition
+    ? EntityFieldType<Defs[K]>
+    : never;
+};
 
 type WrapModifiers<F extends EntityFieldDefinition, B extends z.ZodType> =
     IsTrue<F["isOptional"]> extends true
