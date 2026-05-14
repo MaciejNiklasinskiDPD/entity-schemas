@@ -1,0 +1,20 @@
+{
+  "name": "entity-schema",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "license": "ISC",
+  "main": "dist/index.js",
+  "author": "",
+  "type": "commonjs",
+  "dependencies": {
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.0",
+    "typescript": "^5.6.3"
+  },
+  "files": [
+    "dist"
+  ]
+}
