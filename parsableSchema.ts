@@ -7,6 +7,9 @@ import {
     EntityFieldType,
     EntityFieldVariant,
     ExactField,
+    PersistableEntitySchemaDefinition,
+    PersistableEntityFieldConfig,
+    PersistableSchemaConfig,
     ValidateRelations,
 } from "./schema";
 
@@ -34,18 +37,16 @@ export type KeyParsableEntityFieldDefinition = {
     isOptional?: false,
 };
 
-export type ParsableEntityFieldDefinition<T extends string = string> =
-    EntityFieldDefinition & {
-        tableName?: T,
-    } & (
+export type ParsableEntityFieldDefinition =
+    EntityFieldDefinition & (
         DataParsableEntityFieldDefinition
         | AttributeParsableEntityFieldDefinition
         | KeyParsableEntityFieldDefinition
     );
 
 
-export type ParsableEntitySchemaDefinition<T extends string = string> = {
-    [k: string]: ParsableEntityFieldDefinition<T>;
+export type ParsableEntitySchemaDefinition = {
+    [k: string]: ParsableEntityFieldDefinition;
 };
 
 type ParsableSourceVariant =
@@ -56,7 +57,7 @@ type ParsableSourceVariant =
 type FlatParsableFieldVariant<T extends string> =
     CrossIntersect<
         CrossIntersect<EntityFieldVariant, ParsableSourceVariant>,
-        BaseEntityFieldDefinition & { tableName?: T }
+        BaseEntityFieldDefinition & PersistableEntityFieldConfig<T>
     >;
 
 type ExactParsableDefinition<S, T extends string> = {
@@ -77,12 +78,13 @@ const createParsableSchemaField = (fieldDefinition: ParsableEntityFieldDefinitio
     return field;
 };
 
-export type ParsableSchemaConfig<T extends string = string> =
-    { tableName: T } | { tableNames: readonly T[] };
+export type ParsableSchemaConfig<T extends string> = {
+    // TODO add specific requirements for parsable config here    
+} & PersistableSchemaConfig<T>;
 
 export const createParsableSchema = <
     const T extends string,
-    const S extends ParsableEntitySchemaDefinition<T> & ValidateRelations<S>,
+    const S extends ParsableEntitySchemaDefinition & PersistableEntitySchemaDefinition<T> & ValidateRelations<S>,
 >(
     config: ParsableSchemaConfig<T>,
     definition: S & ExactParsableDefinition<S, T>,

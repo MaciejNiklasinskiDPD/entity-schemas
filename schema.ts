@@ -89,12 +89,12 @@ export type EntitySchemaDefinition = {
     [k: string]: EntityFieldDefinition;
 };
 
-export type PersistenceEntityFieldConfig<T extends string = string> = {
+export type PersistableEntityFieldConfig<T extends string> = {
     tableName?: T,
 };
 
-export type PersistenceEntitySchemaDefinition<T extends string = string> = {
-    [k: string]: EntityFieldDefinition & PersistenceEntityFieldConfig<T>;
+export type PersistableEntitySchemaDefinition<T extends string> = {
+    [k: string]: EntityFieldDefinition & PersistableEntityFieldConfig<T>;
 };
 
 export type EntityFieldVariant =
@@ -115,8 +115,8 @@ export type EntityFieldVariant =
 export type FlatEntityFieldVariant =
     CrossIntersect<EntityFieldVariant, BaseEntityFieldDefinition>;
 
-export type FlatPersistenceFieldVariant<T extends string = string> =
-    CrossIntersect<EntityFieldVariant, BaseEntityFieldDefinition & PersistenceEntityFieldConfig<T>>;
+export type FlatPersistableFieldVariant<T extends string> =
+    CrossIntersect<EntityFieldVariant, BaseEntityFieldDefinition & PersistableEntityFieldConfig<T>>;
 
 export type RecurseIntoChildren<F> =
     F extends { type: "object"; schemaDefinition: infer Sub extends EntitySchemaDefinition }
@@ -142,8 +142,8 @@ export type ExactEntitySchema<S> = {
     [K in keyof S]: ExactField<S[K], FlatEntityFieldVariant>;
 };
 
-export type ExactPersistenceDefinition<S, T extends string> = {
-    [K in keyof S]: ExactField<S[K], FlatPersistenceFieldVariant<T>>;
+export type ExactPersistableDefinition<S, T extends string> = {
+    [K in keyof S]: ExactField<S[K], FlatPersistableFieldVariant<T>>;
 };
 
 type EntityFieldBaseType<F extends EntityFieldDefinition> =
@@ -252,16 +252,16 @@ export const createSchemaField = (fieldDefinition: EntityFieldDefinition): ZodTy
     return field;
 };
 
-export type PersistenceSchemaConfig<T extends string = string> =
+export type PersistableSchemaConfig<T extends string> =
     { tableName: T } | { tableNames: readonly T[] };
 
 export const createSchema = <
     const T extends string,
-    const S extends PersistenceEntitySchemaDefinition<T> & ValidateRelations<S>,
+    const S extends PersistableEntitySchemaDefinition<T> & ValidateRelations<S>,
 >(
-    config: PersistenceSchemaConfig<T>,
-    definition: S & ExactPersistenceDefinition<S, T>,
-): { definition: S; schema: ZodObject<SchemaShape<S>>; config: PersistenceSchemaConfig<T> } => {
+    config: PersistableSchemaConfig<T>,
+    definition: S & ExactPersistableDefinition<S, T>,
+): { definition: S; schema: ZodObject<SchemaShape<S>>; config: PersistableSchemaConfig<T> } => {
     const shape = Object.fromEntries(
         Object.entries(definition).map(([key, value]) => [key, createSchemaField(value)])
     ) as unknown as SchemaShape<S>;

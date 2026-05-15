@@ -8,7 +8,6 @@ const nonParsableSchema = createSchema(
     },
     {
         enumField: {
-            position: 1,
             type: "enum",
             values: [1, 2, 3],
         },
