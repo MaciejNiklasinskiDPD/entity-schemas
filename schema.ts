@@ -115,6 +115,9 @@ export type EntityFieldVariant =
 export type FlatEntityFieldVariant =
     CrossIntersect<EntityFieldVariant, BaseEntityFieldDefinition>;
 
+export type FlatPersistenceFieldVariant<T extends string = string> =
+    CrossIntersect<EntityFieldVariant, BaseEntityFieldDefinition & PersistenceEntityFieldConfig<T>>;
+
 export type RecurseIntoChildren<F> =
     F extends { type: "object"; schemaDefinition: infer Sub extends EntitySchemaDefinition }
     ? { schemaDefinition: ExactEntitySchema<Sub> }
@@ -137,6 +140,10 @@ export type ExactField<F, V> =
 
 export type ExactEntitySchema<S> = {
     [K in keyof S]: ExactField<S[K], FlatEntityFieldVariant>;
+};
+
+export type ExactPersistenceDefinition<S, T extends string> = {
+    [K in keyof S]: ExactField<S[K], FlatPersistenceFieldVariant<T>>;
 };
 
 type EntityFieldBaseType<F extends EntityFieldDefinition> =
@@ -253,7 +260,7 @@ export const createSchema = <
     const S extends PersistenceEntitySchemaDefinition<T> & ValidateRelations<S>,
 >(
     config: PersistenceSchemaConfig<T>,
-    definition: S,
+    definition: S & ExactPersistenceDefinition<S, T>,
 ): { definition: S; schema: ZodObject<SchemaShape<S>>; config: PersistenceSchemaConfig<T> } => {
     const shape = Object.fromEntries(
         Object.entries(definition).map(([key, value]) => [key, createSchemaField(value)])
