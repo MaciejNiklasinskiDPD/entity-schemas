@@ -6,6 +6,8 @@ export type BaseEntityFieldDefinition = {
     isNullable?: boolean,
 };
 
+export type BaseEntityFieldDefinitionKeys = keyof BaseEntityFieldDefinition;
+
 export type StringEntityFieldDefinition = {
     type: "string",
     length: number | "max",
@@ -112,70 +114,75 @@ export type EntityFieldVariant =
     | NullEntityFieldDefinition
     | UndefinedEntityFieldDefinition;
 
-export type FlatEntityFieldVariant =
-    CrossIntersect<EntityFieldVariant, BaseEntityFieldDefinition>;
-
 export type FlatPersistableFieldVariant<T extends string> =
-    CrossIntersect<EntityFieldVariant, BaseEntityFieldDefinition & PersistableEntityFieldConfig<T>>;
+    CrossIntersect<EntityFieldVariant, PersistableEntityFieldConfig<T>>;
 
 export type RecurseIntoChildren<F> =
-    F extends { type: "object"; schemaDefinition: infer Sub extends EntitySchemaDefinition }
+    F extends { type: "object"; schemaDefinition: infer Sub }
+    ? Sub extends EntitySchemaDefinition
     ? { schemaDefinition: ExactEntitySchema<Sub> }
-    : F extends { type: "array"; itemDefinition: infer Item extends EntityFieldDefinition }
-    ? { itemDefinition: ExactField<Item, FlatEntityFieldVariant> }
-    : F extends { type: "union"; fieldDefinitions: infer Defs extends readonly EntityFieldDefinition[] }
+    : {}
+    : F extends { type: "array"; itemDefinition: infer Item }
+    ? Item extends EntityFieldDefinition
+    ? { itemDefinition: ExactField<Item, EntityFieldVariant> }
+    : {}
+    : F extends { type: "union"; fieldDefinitions: infer Defs }
+    ? Defs extends readonly EntityFieldDefinition[]
     ? {
         fieldDefinitions: {
             [K in keyof Defs]: Defs[K] extends EntityFieldDefinition
-            ? ExactField<Defs[K], FlatEntityFieldVariant>
+            ? ExactField<Defs[K], EntityFieldVariant>
             : Defs[K];
         };
     }
+    : {}
     : {};
 
 export type ExactField<F, V> =
     F
-    & ExtraKeyError<F, AllowedKeysFor<F, V>>
+    & ExtraKeyError<F, AllowedKeysFor<F, V> | BaseEntityFieldDefinitionKeys>
     & RecurseIntoChildren<F>;
 
 export type ExactEntitySchema<S> = {
-    [K in keyof S]: ExactField<S[K], FlatEntityFieldVariant>;
+    [K in keyof S]: ExactField<S[K], EntityFieldVariant>;
 };
 
 export type ExactPersistableDefinition<S, T extends string> = {
     [K in keyof S]: ExactField<S[K], FlatPersistableFieldVariant<T>>;
 };
 
-type EntityFieldBaseType<F extends EntityFieldDefinition> =
+export type EntityFieldBaseType<F extends EntityFieldDefinition> =
     F extends { type: "string" } ? z.ZodString :
     F extends { type: "enum"; values: infer V }
     ? V extends readonly (infer U extends string)[] ? z.ZodEnum<{ [K in U]: K }>
     : V extends readonly (infer U extends number)[] ? z.ZodEnum<{ [K in U]: K }>
     : never :
-    F extends { type: "relation"; schemaDefinition: infer E extends EntitySchemaDefinition; key: infer K }
-    ? K extends keyof E ? EntityFieldType<E[K]> : never :
+    F extends { type: "relation"; schemaDefinition: infer E; key: infer K }
+    ? E extends EntitySchemaDefinition ? K extends keyof E ? EntityFieldType<E[K]> : never : never :
     F extends { type: "timestamp" } ? z.ZodString :
     F extends { type: "date" } ? z.ZodString :
     F extends { type: "time" } ? z.ZodString :
     F extends { type: "number" } ? z.ZodNumber :
     F extends { type: "boolean" } ? z.ZodBoolean :
-    F extends { type: "array"; itemDefinition: infer I extends EntityFieldDefinition } ? z.ZodArray<EntityFieldType<I>> :
-    F extends { type: "object"; schemaDefinition: infer S extends EntitySchemaDefinition } ? z.ZodObject<SchemaShape<S>> :
-    F extends { type: "union"; fieldDefinitions: infer Defs extends readonly EntityFieldDefinition[] }
+    F extends { type: "array"; itemDefinition: infer I } ? I extends EntityFieldDefinition ? z.ZodArray<EntityFieldType<I>> : never :
+    F extends { type: "object"; schemaDefinition: infer S } ? S extends EntitySchemaDefinition ? z.ZodObject<SchemaShape<S>> : never :
+    F extends { type: "union"; fieldDefinitions: infer Defs }
+    ? Defs extends readonly EntityFieldDefinition[]
     ? UnionElementTypes<Defs> extends infer M extends readonly z.ZodType[]
     ? z.ZodUnion<M>
+    : never
     : never :
     F extends { type: "null" } ? z.ZodNull :
     F extends { type: "undefined" } ? z.ZodUndefined :
     never;
 
-type UnionElementTypes<Defs extends readonly EntityFieldDefinition[]> = {
+export type UnionElementTypes<Defs extends readonly EntityFieldDefinition[]> = {
     [K in keyof Defs]: Defs[K] extends EntityFieldDefinition
     ? EntityFieldType<Defs[K]>
     : never;
 };
 
-type WrapModifiers<F extends EntityFieldDefinition, B extends z.ZodType> =
+export type WrapModifiers<F extends EntityFieldDefinition, B extends z.ZodType> =
     IsTrue<F["isOptional"]> extends true
     ? IsTrue<F["isNullable"]> extends true
     ? z.ZodNullable<z.ZodOptional<B>>
@@ -189,15 +196,17 @@ export type EntityFieldType<F extends EntityFieldDefinition> =
     ? WrapModifiers<F, B>
     : never;
 
-type SchemaShape<S extends EntitySchemaDefinition> = {
+export type SchemaShape<S extends EntitySchemaDefinition> = {
     [K in keyof S]: EntityFieldType<S[K]>;
 };
 
 export type ValidateRelations<S> = {
-    [K in keyof S]: S[K] extends { type: "relation"; schemaDefinition: infer R extends EntitySchemaDefinition; key: infer KK }
+    [K in keyof S]: S[K] extends { type: "relation"; schemaDefinition: infer R; key: infer KK }
+    ? R extends EntitySchemaDefinition
     ? KK extends keyof R
     ? S[K]
     : Omit<S[K], "key"> & { key: keyof R }
+    : S[K]
     : S[K];
 };
 

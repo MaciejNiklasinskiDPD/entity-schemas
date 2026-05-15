@@ -1,7 +1,6 @@
 import z, { ZodObject, ZodType } from "zod";
 import { CrossIntersect } from "./helpers";
 import {
-    BaseEntityFieldDefinition,
     createSchemaField,
     EntityFieldDefinition,
     EntityFieldType,
@@ -44,27 +43,26 @@ export type ParsableEntityFieldDefinition =
         | KeyParsableEntityFieldDefinition
     );
 
-
 export type ParsableEntitySchemaDefinition = {
     [k: string]: ParsableEntityFieldDefinition;
 };
 
-type ParsableSourceVariant =
+export type ParsableSourceVariant =
     | DataParsableEntityFieldDefinition
     | AttributeParsableEntityFieldDefinition
     | KeyParsableEntityFieldDefinition;
 
-type FlatParsableFieldVariant<T extends string> =
+export type FlatParsableFieldVariant<T extends string> =
     CrossIntersect<
         CrossIntersect<EntityFieldVariant, ParsableSourceVariant>,
-        BaseEntityFieldDefinition & PersistableEntityFieldConfig<T>
+        PersistableEntityFieldConfig<T>
     >;
 
-type ExactParsableDefinition<S, T extends string> = {
+export type ExactParsableDefinition<S, T extends string> = {
     [K in keyof S]: ExactField<S[K], FlatParsableFieldVariant<T>>;
 };
 
-type ParsableSchemaShape<S extends ParsableEntitySchemaDefinition> = {
+export type ParsableSchemaShape<S extends ParsableEntitySchemaDefinition> = {
     [K in keyof S]: EntityFieldType<S[K]>;
 };
 
