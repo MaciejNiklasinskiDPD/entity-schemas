@@ -1,5 +1,26 @@
 import z from "zod";
+import { createSchema } from "./schema";
 import { createParsableSchema } from "./parsableSchema";
+
+const nonParsableSchema = createSchema(
+    {
+        tableName: "business_units",
+    },
+    {
+        enumField: {
+            position: 1,
+            type: "enum",
+            values: [1, 2, 3],
+        },
+        objectField1: {
+            type: "object",
+            schemaDefinition: {
+                objectField21: {
+                    type: "boolean",
+                },
+            },
+        }
+    });
 
 const {
     definition: businessUnitSchemaDefinition,
@@ -91,9 +112,18 @@ const {
                     length: "max",
                 },
                 {
-                    type: "number",
-                    subType: "integer",
+                    type: "object",
+                    schemaDefinition: {
+                        objectField21: {
+                            type: "boolean",
+                        },
+                    },
                 },
+                {
+                    type: "relation",
+                    schemaDefinition: businessUnitSchemaDefinition,
+                    key: "businessUnit",
+                }
             ],
         },
     }

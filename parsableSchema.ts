@@ -78,8 +78,7 @@ const createParsableSchemaField = (fieldDefinition: ParsableEntityFieldDefinitio
 };
 
 export type ParsableSchemaConfig<T extends string = string> =
-    | { tableName: T }
-    | { tableNames: readonly T[] };
+    { tableName: T } | { tableNames: readonly T[] };
 
 export const createParsableSchema = <
     const T extends string,

@@ -89,6 +89,14 @@ export type EntitySchemaDefinition = {
     [k: string]: EntityFieldDefinition;
 };
 
+export type PersistenceEntityFieldConfig<T extends string = string> = {
+    tableName?: T,
+};
+
+export type PersistenceEntitySchemaDefinition<T extends string = string> = {
+    [k: string]: EntityFieldDefinition & PersistenceEntityFieldConfig<T>;
+};
+
 export type EntityFieldVariant =
     | StringEntityFieldDefinition
     | EnumEntityFieldDefinition
@@ -237,17 +245,23 @@ export const createSchemaField = (fieldDefinition: EntityFieldDefinition): ZodTy
     return field;
 };
 
+export type PersistenceSchemaConfig<T extends string = string> =
+    { tableName: T } | { tableNames: readonly T[] };
+
 export const createSchema = <
-    const S extends EntitySchemaDefinition & ValidateRelations<S>,
+    const T extends string,
+    const S extends PersistenceEntitySchemaDefinition<T> & ValidateRelations<S>,
 >(
-    definition: S
-): { definition: S; schema: ZodObject<SchemaShape<S>> } => {
+    config: PersistenceSchemaConfig<T>,
+    definition: S,
+): { definition: S; schema: ZodObject<SchemaShape<S>>; config: PersistenceSchemaConfig<T> } => {
     const shape = Object.fromEntries(
         Object.entries(definition).map(([key, value]) => [key, createSchemaField(value)])
     ) as unknown as SchemaShape<S>;
 
     return {
         definition: definition as S,
-        schema: z.object(shape)
+        schema: z.object(shape),
+        config,
     } as const;
 };
